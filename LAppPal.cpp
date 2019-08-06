@@ -8,16 +8,14 @@
 #include "LAppPal.hpp"
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>  
+#include <stdarg.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <iostream>
 #include <fstream>
 #include <GLES2/gl2.h>
-#include <android/log.h>
 #include <Model/CubismMoc.hpp>
 #include "LAppDefine.hpp"
-#include "../JniBridgeC.hpp"
 
 using std::endl;
 using namespace Csm;
@@ -30,11 +28,11 @@ double LAppPal::s_deltaTime = 0.0;
 
 csmByte* LAppPal::LoadFileAsBytes(const string filePath, csmSizeInt* outSize)
 {
-    //filePath;// 
+    //filePath;//
     const char* path = filePath.c_str();
 
     // file buffer
-    char* buf = JniBridgeC::LoadFileAsBytesFromJava(path, outSize);
+    char* buf = NULL;
 
     return reinterpret_cast<csmByte*>(buf);
 }
@@ -61,8 +59,7 @@ void LAppPal::PrintLog(const csmChar* format, ...)
     va_list args;
     csmChar buf[256];
     va_start(args, format);
-    __android_log_vprint(ANDROID_LOG_DEBUG, "NativePrint", format, args);    // 標準出力でレンダリング
-    std::cerr << buf << std::endl;
+    vprintf(format, args);
     va_end(args);
 }
 

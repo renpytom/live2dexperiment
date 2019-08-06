@@ -6,6 +6,7 @@
  */
 
 #include "LAppAllocator.hpp"
+#include <stdlib.h>
 
 using namespace Csm;
 
