@@ -1,0 +1,10 @@
+.cproject
+.project
+.pydevproject
+.settings/
+
+Cubism3SDKforNative
+Cubism3SDKforNative-beta12.zip
+
+build/
+main
