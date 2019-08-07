@@ -27,6 +27,10 @@ int main(int argc, char **argv) {
     //Initialize cubism
     CubismFramework::Initialize();
 
+
+    CubismFramework::Dispose();
+    CubismFramework::CleanUp();
+
     return 0;
 }
 
