@@ -3,6 +3,11 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 from libc.stdio cimport printf
 
+from renpy.gl2.gl2geometry cimport Mesh, Polygon
+from renpy.display.matrix cimport Matrix
+from renpy.display.render cimport Render
+
+
 # Enable logging.
 cdef void log_function(const char *message):
     print(message)
@@ -31,7 +36,7 @@ cdef class AlignedMemory:
         free(self.base)
 
 
-cdef class Model:
+cdef class Live2DModel:
     """
     Represents a Live2D model, generated from a MOC.
     """
@@ -127,3 +132,100 @@ cdef class Model:
         self.drawable_vertex_uvs = csmGetDrawableVertexUvs(self.model)
         self.drawable_index_counts = csmGetDrawableIndexCounts(self.model)
         self.drawable_indices = csmGetDrawableIndices(self.model)
+
+    cdef drawable_to_mesh(Live2DModel self, int drawable):
+        cdef csmVector2 *vertex_positions = self.drawable_vertex_positions[drawable]
+        cdef csmVector2 *vertex_uvs = self.drawable_vertex_uvs[drawable]
+        cdef unsigned short *indices = self.drawable_indices[drawable]
+        cdef int index_count = self.drawable_index_counts[drawable]
+
+        cdef Mesh mesh = Mesh()
+        mesh.add_attribute("aTexCoord", 2)
+
+        cdef int i = 0
+        cdef int idx = 0
+
+        cdef Polygon p
+        cdef float *d
+
+        while i < index_count:
+
+            p = Polygon(6, 3, None)
+            p.points = 3
+            d = p.data
+
+            idx = indices[i]
+            d[0] = vertex_positions[idx].X
+            d[1] = vertex_positions[idx].Y
+            d[2] = 0
+            d[3] = 1
+            d[4] = vertex_uvs[idx].X
+            d[5] = vertex_uvs[idx].Y
+            i += 1
+
+            idx = indices[i]
+            d[6] = vertex_positions[idx].X
+            d[7] = vertex_positions[idx].Y
+            d[8] = 0
+            d[9] = 1
+            d[10] = vertex_uvs[idx].X
+            d[11] = vertex_uvs[idx].Y
+            i += 1
+
+            idx = indices[i]
+            d[12] = vertex_positions[idx].X
+            d[13] = vertex_positions[idx].Y
+            d[14] = 0
+            d[15] = 1
+            d[16] = vertex_uvs[idx].X
+            d[17] = vertex_uvs[idx].Y
+            i += 1
+
+            mesh.polygons.append(p)
+            mesh.points += 3
+
+        return mesh
+
+    def render(self):
+
+        cdef Mesh mesh
+        cdef Render r
+        cdef Render rv
+
+        w = 400
+        h = 400
+        shaders = ("renpy.solid",)
+        uniforms = { "uSolidColor" : (0.5, 0.0, 0.0, 1.0) }
+
+        cdef Matrix scale = Matrix([
+            w, 0, 0, 0,
+            0, -h, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+            ])
+
+        cdef int i
+
+        csmUpdateModel(self.model)
+
+        rv = Render(w, h)
+
+        for 0 <= i < self.drawable_count:
+
+            mesh = self.drawable_to_mesh(i);
+            mesh.multiply_matrix_inplace(scale)
+
+            if i == 5:
+                print(mesh)
+
+            r = Render(w, h)
+            r.mesh = mesh
+            r.shaders = shaders
+            r.uniforms = uniforms
+
+            rv.blit(r, (0, 0))
+
+        return rv
+
+
+
