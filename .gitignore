@@ -11,3 +11,6 @@ main
 main2
 live2d.c
 live2d.h
+game/saves
+game/cache
+*.rpyc
