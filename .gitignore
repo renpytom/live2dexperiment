@@ -14,3 +14,6 @@ live2d.h
 game/saves
 game/cache
 *.rpyc
+log.txt
+traceback.txt
+errors.txt
