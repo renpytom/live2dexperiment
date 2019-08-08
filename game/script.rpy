@@ -14,8 +14,15 @@ init python:
             super(Live2D, self).__init__(**properties)
             self.model = live2d.Live2DModel(filename)
 
+            self.textures = [
+                renpy.displayable("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_00.png"),
+                renpy.displayable("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_01.png"),
+            ]
+
         def render(self, width, height, st, at):
-            return self.model.render()
+            renpy.redraw(self, 0)
+            textures = [ renpy.render(d, width, height, st, at) for d in self.textures ]
+            return self.model.render(textures)
 
 image hiyori = Live2D("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.moc3")
 

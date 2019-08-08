@@ -160,7 +160,7 @@ cdef class Live2DModel:
             d[2] = 0
             d[3] = 1
             d[4] = vertex_uvs[idx].X
-            d[5] = vertex_uvs[idx].Y
+            d[5] = 1.0 - vertex_uvs[idx].Y
             i += 1
 
             idx = indices[i]
@@ -169,7 +169,7 @@ cdef class Live2DModel:
             d[8] = 0
             d[9] = 1
             d[10] = vertex_uvs[idx].X
-            d[11] = vertex_uvs[idx].Y
+            d[11] = 1.0 - vertex_uvs[idx].Y
             i += 1
 
             idx = indices[i]
@@ -178,7 +178,7 @@ cdef class Live2DModel:
             d[14] = 0
             d[15] = 1
             d[16] = vertex_uvs[idx].X
-            d[17] = vertex_uvs[idx].Y
+            d[17] = 1.0 - vertex_uvs[idx].Y
             i += 1
 
             mesh.polygons.append(p)
@@ -186,7 +186,7 @@ cdef class Live2DModel:
 
         return mesh
 
-    def render(self):
+    def render(self, textures):
 
         cdef Mesh mesh
         cdef Render r
@@ -194,8 +194,8 @@ cdef class Live2DModel:
 
         w = 400
         h = 400
-        shaders = ("renpy.solid",)
-        uniforms = { "uSolidColor" : (0.5, 0.0, 0.0, 1.0) }
+        shaders = ("renpy.texture",)
+        uniforms = None # { "uSolidColor" : (0.5, 0.0, 0.0, 1.0) }
 
         cdef Matrix scale = Matrix([
             w, 0, 0, 0,
@@ -210,20 +210,30 @@ cdef class Live2DModel:
 
         rv = Render(w, h)
 
+        renders = [ ]
+
         for 0 <= i < self.drawable_count:
+
+            if not self.drawable_dynamic_flags[i] & csmIsVisible:
+                continue
 
             mesh = self.drawable_to_mesh(i);
             mesh.multiply_matrix_inplace(scale)
-
-            if i == 5:
-                print(mesh)
 
             r = Render(w, h)
             r.mesh = mesh
             r.shaders = shaders
             r.uniforms = uniforms
+            r.alpha = self.drawable_opacities[i]
 
-            rv.blit(r, (0, 0))
+            r.blit(textures[self.drawable_texture_indices[i]], (0, 0))
+
+            renders.append((self.drawable_render_orders[i], r))
+
+        renders.sort()
+
+        for t in renders:
+            rv.blit(t[1], (0, 0))
 
         return rv
 
