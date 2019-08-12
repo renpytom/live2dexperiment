@@ -35,6 +35,23 @@ cdef class AlignedMemory:
     def __dealloc__(self):
         free(self.base)
 
+class Parameter(object):
+    """
+    Represents the information known about a parameter.
+    """
+
+    def __init__(self, index, name, minimum, maximum, default):
+        self.index = index
+        self.name = name
+        self.minimum = minimum
+        self.maximum = maximum
+        self.default = default
+
+class Part(object):
+
+    def __init__(self, index, name):
+        self.index = index
+        self.name = name
 
 cdef class Live2DModel:
     """
@@ -77,13 +94,17 @@ cdef class Live2DModel:
     cdef const int *drawable_index_counts
     cdef const unsigned short **drawable_indices
 
+    cdef public dict parameters
+    cdef public dict parts
+
     def __init__(self, fn):
         """
         Loads the Live2D model.
         """
 
-        with open(fn, "rb") as f:
-            data = f.read()
+        import renpy.exports
+
+        data = renpy.exports.file(fn).read()
 
         # Load the MOC.
         self.moc_data = AlignedMemory(len(data), csmAlignofMoc, data)
@@ -132,6 +153,31 @@ cdef class Live2DModel:
         self.drawable_vertex_uvs = csmGetDrawableVertexUvs(self.model)
         self.drawable_index_counts = csmGetDrawableIndexCounts(self.model)
         self.drawable_indices = csmGetDrawableIndices(self.model)
+
+        self.parameters = { }
+
+        for 0 <= i < self.parameter_count:
+            name = self.parameter_ids[i]
+            self.parameters[name] = Parameter(
+                i, name,
+                self.parameter_minimum_values[i],
+                self.parameter_maximum_values[i],
+                self.parameter_default_values[i],
+                )
+
+        self.parts = { }
+
+        for 0 <= i < self.part_count:
+            name = self.part_ids[i]
+            self.parts[name] = Part(i, name)
+
+    def set_part_opacity(self, name, value):
+        part = self.parts[name]
+        self.part_opacities[part.index] = value
+
+    def set_parameter(self, name, value):
+        parameter = self.parameters[name]
+        self.parameter_values[parameter.index] = value
 
     cdef drawable_to_mesh(Live2DModel self, int drawable):
         cdef csmVector2 *vertex_positions = self.drawable_vertex_positions[drawable]
@@ -192,8 +238,8 @@ cdef class Live2DModel:
         cdef Render r
         cdef Render rv
 
-        w = 400
-        h = 400
+        w = 1024
+        h = 1024
         shaders = ("renpy.texture",)
         uniforms = None # { "uSolidColor" : (0.5, 0.0, 0.0, 1.0) }
 

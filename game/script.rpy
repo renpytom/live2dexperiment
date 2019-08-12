@@ -7,6 +7,7 @@ define a = Character("Augustina", image="augustina")
 init python:
 
     import live2d
+    import math
 
     class Live2D(renpy.Displayable):
 
@@ -19,9 +20,22 @@ init python:
                 renpy.displayable("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_01.png"),
             ]
 
+            self.model.set_part_opacity("PartArmA", 0.0)
+
+            pax = self.model.parameters["ParamAngleX"]
+            print(pax.minimum, pax.default, pax.maximum)
+
+
         def render(self, width, height, st, at):
+
+            angle = 30 * math.sin(st)
+
             renpy.redraw(self, 0)
             textures = [ renpy.render(d, width, height, st, at) for d in self.textures ]
+
+            self.model.set_parameter("ParamAngleX", angle)
+
+
             return self.model.render(textures)
 
 image hiyori = Live2D("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.moc3")
