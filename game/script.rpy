@@ -23,10 +23,9 @@ init python:
 
             self.motion = live2dmotion.Live2DMotion("Cubism3SDKforNative/Samples/Res/Hiyori/motions/Hiyori_m01.motion3.json")
 
-            self.model.set_part_opacity("PartArmA", 0.0)
-
-            pax = self.model.parameters["ParamAngleX"]
-            print(pax.minimum, pax.default, pax.maximum)
+            # self.model.set_part_opacity("PartArmA", 0.0)
+#             pax = self.model.parameters["ParamAngleX"]
+#             print(pax.minimum, pax.default, pax.maximum)
 
 
         def render(self, width, height, st, at):
@@ -36,8 +35,20 @@ init python:
             renpy.redraw(self, 0)
             textures = [ renpy.render(d, width, height, st, at) for d in self.textures ]
 
-            self.model.set_parameter("ParamAngleX", angle)
+            for k, v in self.motion.get(st).items():
 
+                kind, key = k
+
+                if kind == "Parameter":
+                    if key == "ParamEyeROpen":
+                        continue
+
+                    if key == "ParamEyeLOpen":
+                        continue
+
+                    self.model.set_parameter(key, v)
+                else:
+                    self.model.set_part_opacity(key, v)
 
             return self.model.render(textures)
 
