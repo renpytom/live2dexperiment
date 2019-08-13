@@ -7,6 +7,7 @@ define a = Character("Augustina", image="augustina")
 init python:
 
     import live2d
+    import live2dmotion
     import math
 
     class Live2D(renpy.Displayable):
@@ -16,9 +17,11 @@ init python:
             self.model = live2d.Live2DModel(filename)
 
             self.textures = [
-                renpy.displayable("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_00.png"),
-                renpy.displayable("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_01.png"),
+                renpy.displayable("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_00.png"),
+                renpy.displayable("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_01.png"),
             ]
+
+            self.motion = live2dmotion.Live2DMotion("Cubism3SDKforNative/Samples/Res/Hiyori/motions/Hiyori_m01.motion3.json")
 
             self.model.set_part_opacity("PartArmA", 0.0)
 
@@ -38,7 +41,7 @@ init python:
 
             return self.model.render(textures)
 
-image hiyori = Live2D("./Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.moc3")
+image hiyori = Live2D("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.moc3")
 
 
 label main_menu:
@@ -48,7 +51,9 @@ label main_menu:
 label start:
 
     scene bg washington
-    show hiyori
+    show hiyori:
+        xoffset 640
+        yoffset 640
 
     "..."
 
