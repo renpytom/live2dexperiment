@@ -14,6 +14,7 @@ extensions = [
         library_dirs=[ CUBISM + "/Core/dll/linux/x86_64/" ],
         ),
 ]
+
 setup(
     name="live2d",
     ext_modules=cythonize(extensions, include_path=[ RENPY, RENPY + "/module" ]),
