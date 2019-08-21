@@ -23,14 +23,7 @@ init python:
 
             self.motion = live2dmotion.Live2DMotion("Cubism3SDKforNative/Samples/Res/Hiyori/motions/Hiyori_m01.motion3.json")
 
-            # self.model.set_part_opacity("PartArmA", 0.0)
-#             pax = self.model.parameters["ParamAngleX"]
-#             print(pax.minimum, pax.default, pax.maximum)
-
-
         def render(self, width, height, st, at):
-
-            angle = 30 * math.sin(st)
 
             renpy.redraw(self, 0)
             textures = [ renpy.render(d, width, height, st, at) for d in self.textures ]
@@ -152,7 +145,7 @@ init python:
 
             return rv
 
-image bg sponza = Obj("sponza.obj")
+# image bg sponza = Obj("sponza.obj")
 
 label main_menu:
     return
@@ -160,15 +153,9 @@ label main_menu:
 
 label start:
 
-    scene bg sponza
-
-    "..."
-
-
     scene bg washington
     show hiyori:
-        xoffset 640
-        yoffset 640
+        zoom .25
 
     "..."
 

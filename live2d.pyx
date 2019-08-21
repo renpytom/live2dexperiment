@@ -66,6 +66,10 @@ cdef class Live2DModel:
     cdef AlignedMemory model_data
     cdef csmModel *model
 
+    cdef csmVector2 pixel_size
+    cdef csmVector2 pixel_origin
+    cdef float pixels_per_unit
+
     cdef int parameter_count
     cdef const char **parameter_ids
     cdef const float *parameter_minimum_values
@@ -123,6 +127,8 @@ cdef class Live2DModel:
 
         if self.model is NULL:
             raise Exception("Could not initialize Live2D Model.")
+
+        csmReadCanvasInfo(self.model, &(self.pixel_size), &(self.pixel_origin), &(self.pixels_per_unit))
 
         # Query the model for pointers to all the things.
 
@@ -238,14 +244,15 @@ cdef class Live2DModel:
         cdef Render r
         cdef Render rv
 
-        w = 1024
-        h = 1024
+        w = self.pixel_size.X
+        h = self.pixel_size.Y
+
         shaders = ("renpy.texture",)
         uniforms = None # { "uSolidColor" : (0.5, 0.0, 0.0, 1.0) }
 
         cdef Matrix scale = Matrix([
-            w, 0, 0, 0,
-            0, -h, 0, 0,
+            self.pixels_per_unit, 0, 0, self.pixel_origin.X,
+            0, -self.pixels_per_unit, 0, self.pixel_origin.Y,
             0, 0, 1, 0,
             0, 0, 0, 1,
             ])
@@ -255,6 +262,7 @@ cdef class Live2DModel:
         csmUpdateModel(self.model)
 
         rv = Render(w, h)
+        # rv.fill("#f008")
 
         renders = [ ]
 
