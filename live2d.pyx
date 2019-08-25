@@ -16,9 +16,8 @@ csmSetLogFunction(log_function)
 
 cdef class AlignedMemory:
     """
-    This represents a region of aligned memory. The data is available as
-
-
+    This represents a region of aligned memory. The actual region of
+    aligned memory is available through the .data pointer.
     """
 
     cdef void *base
@@ -242,17 +241,20 @@ cdef class Live2DModel:
 
         cdef Mesh mesh
         cdef Render r
+        cdef Render m
         cdef Render rv
 
         w = self.pixel_size.X
         h = self.pixel_size.Y
 
+        offset = (w / 2.0 / self.pixels_per_unit - 1.0, 1.0 - h / 2.0 / self.pixels_per_unit)
+
         shaders = ("renpy.texture",)
         uniforms = None # { "uSolidColor" : (0.5, 0.0, 0.0, 1.0) }
 
         cdef Matrix scale = Matrix([
-            self.pixels_per_unit, 0, 0, self.pixel_origin.X,
-            0, -self.pixels_per_unit, 0, self.pixel_origin.Y,
+            self.pixels_per_unit, 0, 0, self.pixels_per_unit,
+            0, -self.pixels_per_unit, 0, self.pixels_per_unit,
             0, 0, 1, 0,
             0, 0, 0, 1,
             ])
@@ -262,19 +264,15 @@ cdef class Live2DModel:
         csmUpdateModel(self.model)
 
         rv = Render(w, h)
-        # rv.fill("#f008")
+        rv.reverse = scale
 
         renders = [ ]
+        raw_renders = [ ]
 
         for 0 <= i < self.drawable_count:
-
-            if not self.drawable_dynamic_flags[i] & csmIsVisible:
-                continue
-
             mesh = self.drawable_to_mesh(i);
-            mesh.multiply_matrix_inplace(scale)
 
-            r = Render(w, h)
+            r = Render(self.pixels_per_unit * 2, self.pixels_per_unit * 2)
             r.mesh = mesh
             r.shaders = shaders
             r.uniforms = uniforms
@@ -282,14 +280,21 @@ cdef class Live2DModel:
 
             r.blit(textures[self.drawable_texture_indices[i]], (0, 0))
 
-            renders.append((self.drawable_render_orders[i], r))
+            raw_renders.append(r)
+
+            if self.drawable_dynamic_flags[i] & csmIsVisible:
+                renders.append((self.drawable_render_orders[i], r))
+
+        for 0 <= i < self.drawable_count:
+
+            if self.drawable_mask_counts[i] == 0:
+                continue
+
+            print("MASK", i, "by", self.drawable_masks[i][0])
 
         renders.sort()
 
         for t in renders:
-            rv.blit(t[1], (0, 0))
+            rv.subpixel_blit(t[1], offset)
 
         return rv
-
-
-

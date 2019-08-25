@@ -154,8 +154,14 @@ label main_menu:
 label start:
 
     scene bg washington
+
+    scene expression Solid("#00f8", xysize=(2976, 4175)):
+        zoom .16
+
     show hiyori:
-        zoom .25
+        zoom .16
+
+    pause
 
     "..."
 
