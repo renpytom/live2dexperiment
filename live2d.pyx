@@ -7,6 +7,36 @@ from renpy.gl2.gl2geometry cimport Mesh, Polygon
 from renpy.display.matrix cimport Matrix
 from renpy.display.render cimport Render
 
+from renpy.exports import register_shader
+
+register_shader("live2d.mask", variables="""
+    uniform sampler2D uTex0;
+    uniform sampler2D uTex1;
+    attribute vec4 vPosition;
+    attribute vec2 aTexCoord;
+    varying vec2 vTexCoord;
+    varying vec2 vMaskCoord;
+""", vertex_110="""
+    vTexCoord = aTexCoord;
+    vMaskCoord = vec2(aPosition.x / 2 + .5,  -(aPosition.y / 2 + .5));
+""", fragment_110="""
+    vec4 color = texture2D(uTex0, vTexCoord);
+    vec4 mask = texture2D(uTex1, vMaskCoord);
+    gl_FragColor = vec4(color.rgb, mask.a * color.a);
+""")
+
+register_shader("live2d.test", variables="""
+uniform sampler2D uTex0;
+attribute vec4 vPosition;
+attribute vec2 aTexCoord;
+varying vec2 vTexCoord;
+varying vec2 vMaskCoord;
+""", vertex_110="""
+vTexCoord = aTexCoord;
+vMaskCoord = vec2(aPosition.x / 2 + .5,  aPosition.y / 2 + .5);
+""", fragment_110="""
+gl_FragColor = vec4(0.0, 0.0, vMaskCoord.y, 1.0);
+""")
 
 # Enable logging.
 cdef void log_function(const char *message):
@@ -249,8 +279,8 @@ cdef class Live2DModel:
 
         offset = (w / 2.0 / self.pixels_per_unit - 1.0, 1.0 - h / 2.0 / self.pixels_per_unit)
 
-        shaders = ("renpy.texture",)
-        uniforms = None # { "uSolidColor" : (0.5, 0.0, 0.0, 1.0) }
+        shaders = ("renpy.texture", )
+        mask_shaders = ("live2d.mask", )
 
         cdef Matrix scale = Matrix([
             self.pixels_per_unit, 0, 0, self.pixels_per_unit,
@@ -264,7 +294,7 @@ cdef class Live2DModel:
         csmUpdateModel(self.model)
 
         rv = Render(w, h)
-        rv.reverse = scale
+        # rv.reverse = scale
 
         renders = [ ]
         raw_renders = [ ]
@@ -273,9 +303,9 @@ cdef class Live2DModel:
             mesh = self.drawable_to_mesh(i);
 
             r = Render(self.pixels_per_unit * 2, self.pixels_per_unit * 2)
+            r.reverse = scale
             r.mesh = mesh
             r.shaders = shaders
-            r.uniforms = uniforms
             r.alpha = self.drawable_opacities[i]
 
             r.blit(textures[self.drawable_texture_indices[i]], (0, 0))
@@ -290,7 +320,11 @@ cdef class Live2DModel:
             if self.drawable_mask_counts[i] == 0:
                 continue
 
-            print("MASK", i, "by", self.drawable_masks[i][0])
+            r = raw_renders[i]
+            m = raw_renders[self.drawable_masks[i][0]]
+
+            r.shaders = mask_shaders
+            r.blit(m, (0, 0))
 
         renders.sort()
 
