@@ -1,4 +1,6 @@
 define _confirm_quit = False
+define config.gl2 = True
+define config.transparent_tile = None
 
 define e = Character("Eileen", image="eileen")
 define l = Character("Lucy", image="lucy")
@@ -33,12 +35,6 @@ init python:
                 kind, key = k
 
                 if kind == "Parameter":
-                    if key == "ParamEyeROpen":
-                        continue
-
-                    if key == "ParamEyeLOpen":
-                        continue
-
                     self.model.set_parameter(key, v)
                 else:
                     self.model.set_part_opacity(key, v)
@@ -152,6 +148,8 @@ label main_menu:
 
 
 label start:
+
+    $ quick_menu = False
 
     scene bg washington
 

@@ -18,24 +18,11 @@ register_shader("live2d.mask", variables="""
     varying vec2 vMaskCoord;
 """, vertex_110="""
     vTexCoord = aTexCoord;
-    vMaskCoord = vec2(aPosition.x / 2 + .5,  -(aPosition.y / 2 + .5));
+    vMaskCoord = vec2(aPosition.x / 2 + .5,  -aPosition.y / 2 + .5);
 """, fragment_110="""
     vec4 color = texture2D(uTex0, vTexCoord);
     vec4 mask = texture2D(uTex1, vMaskCoord);
-    gl_FragColor = vec4(color.rgb, mask.a * color.a);
-""")
-
-register_shader("live2d.test", variables="""
-uniform sampler2D uTex0;
-attribute vec4 vPosition;
-attribute vec2 aTexCoord;
-varying vec2 vTexCoord;
-varying vec2 vMaskCoord;
-""", vertex_110="""
-vTexCoord = aTexCoord;
-vMaskCoord = vec2(aPosition.x / 2 + .5,  aPosition.y / 2 + .5);
-""", fragment_110="""
-gl_FragColor = vec4(0.0, 0.0, vMaskCoord.y, 1.0);
+    gl_FragColor = color * mask.a;
 """)
 
 # Enable logging.
@@ -277,7 +264,7 @@ cdef class Live2DModel:
         w = self.pixel_size.X
         h = self.pixel_size.Y
 
-        offset = (w / 2.0 / self.pixels_per_unit - 1.0, 1.0 - h / 2.0 / self.pixels_per_unit)
+        offset = (w / 2.0 - self.pixels_per_unit, h / 2.0 - self.pixels_per_unit)
 
         shaders = ("renpy.texture", )
         mask_shaders = ("live2d.mask", )
