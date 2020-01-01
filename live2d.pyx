@@ -3,7 +3,9 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 from libc.stdio cimport printf
 
-from renpy.gl2.gl2geometry cimport Mesh, Polygon
+from renpy.gl2.gl2mesh import TEXTURE_LAYOUT
+from renpy.gl2.gl2mesh2 cimport Mesh2
+
 from renpy.display.matrix cimport Matrix
 from renpy.display.render cimport Render
 
@@ -18,11 +20,17 @@ register_shader("live2d.mask", variables="""
     varying vec2 vMaskCoord;
 """, vertex_110="""
     vTexCoord = aTexCoord;
-    vMaskCoord = vec2(aPosition.x / 2 + .5,  -aPosition.y / 2 + .5);
+    vMaskCoord = vec2(aPosition.x / 2 + .5, -aPosition.y / 2 + .5);
 """, fragment_110="""
     vec4 color = texture2D(uTex0, vTexCoord);
     vec4 mask = texture2D(uTex1, vMaskCoord);
     gl_FragColor = color * mask.a;
+""")
+
+register_shader("live2d.flip_texture", variables="""
+    varying vec2 vTexCoord;
+""", vertex_120="""
+    vTexCoord.y = 1.0 - vTexCoord.y;
 """)
 
 # Enable logging.
@@ -117,10 +125,18 @@ cdef class Live2DModel:
     cdef public dict parameters
     cdef public dict parts
 
+    cdef list meshes
+
+    cdef Matrix forward
+    cdef Matrix reverse
+    cdef tuple offset
+
     def __init__(self, fn):
         """
         Loads the Live2D model.
         """
+
+        cdef int i
 
         import renpy.exports
 
@@ -193,6 +209,46 @@ cdef class Live2DModel:
             name = self.part_ids[i]
             self.parts[name] = Part(i, name)
 
+        # Render the model.
+
+        cdef Mesh2 mesh
+
+        w = self.pixel_size.X
+        h = self.pixel_size.Y
+
+        self.offset = (w / 2.0 - self.pixels_per_unit, h / 2.0 - self.pixels_per_unit)
+
+        ppu = self.pixels_per_unit
+        invppu = -self.pixels_per_unit
+
+        self.reverse = Matrix([
+            ppu, 0, 0, ppu,
+            0, -ppu, 0, ppu,
+            0, 0, 1, 0,
+            0, 0, 0, 1, ])
+
+        self.forward = Matrix([
+            invppu, 0, 0, invppu,
+            0, -invppu, 0, invppu,
+            0, 0, 1, 0,
+            0, 0, 0, 1, ])
+
+        csmUpdateModel(self.model)
+
+        self.meshes = [ ]
+
+        for 0 <= i < self.drawable_count:
+            mesh = Mesh2(TEXTURE_LAYOUT, 0, 0)
+            mesh.points = self.drawable_vertex_counts[i]
+            mesh.point_data = <float *> self.drawable_vertex_positions[i]
+            mesh.attribute = <float *> self.drawable_vertex_uvs[i]
+            mesh.triangles = self.drawable_index_counts[i] // 3
+            mesh.triangle = self.drawable_indices[i]
+
+            self.meshes.append(mesh)
+
+
+
     def set_part_opacity(self, name, value):
         part = self.parts[name]
         self.part_opacities[part.index] = value
@@ -201,97 +257,30 @@ cdef class Live2DModel:
         parameter = self.parameters[name]
         self.parameter_values[parameter.index] = value
 
-    cdef drawable_to_mesh(Live2DModel self, int drawable):
-        cdef csmVector2 *vertex_positions = self.drawable_vertex_positions[drawable]
-        cdef csmVector2 *vertex_uvs = self.drawable_vertex_uvs[drawable]
-        cdef unsigned short *indices = self.drawable_indices[drawable]
-        cdef int index_count = self.drawable_index_counts[drawable]
-
-        cdef Mesh mesh = Mesh()
-        mesh.add_attribute("aTexCoord", 2)
-
-        cdef int i = 0
-        cdef int idx = 0
-
-        cdef Polygon p
-        cdef float *d
-
-        while i < index_count:
-
-            p = Polygon(6, 3, None)
-            p.points = 3
-            d = p.data
-
-            idx = indices[i]
-            d[0] = vertex_positions[idx].X
-            d[1] = vertex_positions[idx].Y
-            d[2] = 0
-            d[3] = 1
-            d[4] = vertex_uvs[idx].X
-            d[5] = 1.0 - vertex_uvs[idx].Y
-            i += 1
-
-            idx = indices[i]
-            d[6] = vertex_positions[idx].X
-            d[7] = vertex_positions[idx].Y
-            d[8] = 0
-            d[9] = 1
-            d[10] = vertex_uvs[idx].X
-            d[11] = 1.0 - vertex_uvs[idx].Y
-            i += 1
-
-            idx = indices[i]
-            d[12] = vertex_positions[idx].X
-            d[13] = vertex_positions[idx].Y
-            d[14] = 0
-            d[15] = 1
-            d[16] = vertex_uvs[idx].X
-            d[17] = 1.0 - vertex_uvs[idx].Y
-            i += 1
-
-            mesh.polygons.append(p)
-            mesh.points += 3
-
-        return mesh
-
     def render(self, textures):
 
-        cdef Mesh mesh
         cdef Render r
         cdef Render m
         cdef Render rv
 
-        w = self.pixel_size.X
-        h = self.pixel_size.Y
-
-        offset = (w / 2.0 - self.pixels_per_unit, h / 2.0 - self.pixels_per_unit)
-
-        shaders = ("renpy.texture", )
-        mask_shaders = ("live2d.mask", )
-
-        cdef Matrix scale = Matrix([
-            self.pixels_per_unit, 0, 0, self.pixels_per_unit,
-            0, -self.pixels_per_unit, 0, self.pixels_per_unit,
-            0, 0, 1, 0,
-            0, 0, 0, 1,
-            ])
-
-        cdef int i
+        shaders = ("renpy.texture", "live2d.flip_texture")
+        mask_shaders = ("live2d.mask", "live2d.flip_texture" )
 
         csmUpdateModel(self.model)
 
-        rv = Render(w, h)
-        # rv.reverse = scale
+        w = self.pixel_size.X
+        h = self.pixel_size.Y
 
+        rv = Render(w, h)
         renders = [ ]
         raw_renders = [ ]
 
         for 0 <= i < self.drawable_count:
-            mesh = self.drawable_to_mesh(i);
 
             r = Render(self.pixels_per_unit * 2, self.pixels_per_unit * 2)
-            r.reverse = scale
-            r.mesh = mesh
+            r.reverse = self.reverse
+            r.forward = self.forward
+            r.mesh = self.meshes[i]
             r.shaders = shaders
             r.alpha = self.drawable_opacities[i]
 
@@ -316,6 +305,9 @@ cdef class Live2DModel:
         renders.sort()
 
         for t in renders:
-            rv.subpixel_blit(t[1], offset)
+            rv.subpixel_blit(t[1], self.offset)
 
         return rv
+
+
+
