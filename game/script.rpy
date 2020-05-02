@@ -10,19 +10,33 @@ init python:
     import live2d
     import live2dmotion
     import math
+    import json
 
     class Live2D(renpy.Displayable):
 
-        def __init__(self, filename, **properties):
+        def __init__(self, filename, motion, **properties):
             super(Live2D, self).__init__(**properties)
-            self.model = live2d.Live2DModel(filename)
 
-            self.textures = [
-                renpy.displayable("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_00.png"),
-                renpy.displayable("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.2048/texture_01.png"),
-            ]
+            # The path to where the files used are stored.
+            self.base = filename.rpartition("/")[0]
 
-            self.motion = live2dmotion.Live2DMotion("Cubism3SDKforNative/Samples/Res/Hiyori/motions/Hiyori_m01.motion3.json")
+            if self.base:
+                self.base += "/"
+
+            # The contents of the .model3.json file.
+            self.model_json = json.load(renpy.file(filename))
+
+            # The model created from the moc3 file.
+            self.model = live2d.Live2DModel(self.base + self.model_json["FileReferences"]["Moc"])
+
+            # The texture images.
+            self.textures = [ ]
+
+            for i in self.model_json["FileReferences"]["Textures"]:
+                self.textures.append(renpy.displayable(self.base + i))
+
+            # The motion information.
+            self.motion = live2dmotion.Live2DMotion(self.base + "motions/" + motion + ".motion3.json")
 
         def render(self, width, height, st, at):
 
@@ -40,7 +54,7 @@ init python:
 
             return self.model.render(textures)
 
-image hiyori = Live2D("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.moc3")
+image hiyori = Live2D("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.model3.json", "Hiyori_m01")
 
 
 
