@@ -247,8 +247,6 @@ cdef class Live2DModel:
 
             self.meshes.append(mesh)
 
-
-
     def set_part_opacity(self, name, value):
         part = self.parts[name]
         self.part_opacities[part.index] = value
