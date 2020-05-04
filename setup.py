@@ -5,10 +5,11 @@ import os
 
 RENPY = os.environ["RENPY"]
 CUBISM = os.environ["CUBISM"]
+PLATFORM = os.environ["PLATFORM"]
 
 extensions = [
     Extension(
-        "live2d", ["live2d.pyx"],
+        "live2dmodel", ["live2dmodel.c"],
         include_dirs=[ CUBISM + "/Core/include/" ],
         libraries=[ "Live2DCubismCore" ],
         library_dirs=[ CUBISM + "/Core/dll/linux/x86_64/" ],
@@ -17,5 +18,5 @@ extensions = [
 
 setup(
     name="live2d",
-    ext_modules=cythonize(extensions, include_path=[ RENPY, RENPY + "/module" ]),
+    ext_modules=extensions,
 )

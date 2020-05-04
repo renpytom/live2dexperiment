@@ -7,7 +7,7 @@ define l = Character("Lucy", image="lucy")
 
 init python:
 
-    import live2d
+    import live2dmodel
     import live2dmotion
     import math
     import json
@@ -27,7 +27,7 @@ init python:
             self.model_json = json.load(renpy.file(filename))
 
             # The model created from the moc3 file.
-            self.model = live2d.Live2DModel(self.base + self.model_json["FileReferences"]["Moc"])
+            self.model = live2dmodel.Live2DModel(self.base + self.model_json["FileReferences"]["Moc"])
 
             # The texture images.
             self.textures = [ ]
