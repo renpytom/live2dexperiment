@@ -118,8 +118,14 @@ def load(dll):
 
 """)
 
+
+
     for func in functions:
         func.codegen_load(f)
+
+    f.write("""
+    post_init()
+""")
 
 if __name__ == "__main__":
     main()

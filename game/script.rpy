@@ -11,6 +11,9 @@ init python:
     import live2dmotion
     import math
     import json
+    import os
+
+    live2dmodel.load(os.environ["CUBISM"] + "/Core/dll/linux/x86_64/libLive2DCubismCore.so")
 
     class Live2D(renpy.Displayable):
 

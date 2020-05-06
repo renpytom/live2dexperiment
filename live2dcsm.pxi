@@ -230,3 +230,5 @@ def load(dll):
     csmResetDrawableDynamicFlags = <csmResetDrawableDynamicFlagsType> SDL_LoadFunction(object, "csmResetDrawableDynamicFlags")
     if not csmResetDrawableDynamicFlags:
         raise Exception("csmResetDrawableDynamicFlags not found in Live2D dll " + dll + ".")
+
+    post_init()

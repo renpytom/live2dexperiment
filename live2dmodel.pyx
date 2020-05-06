@@ -11,6 +11,50 @@ from renpy.display.render cimport Render
 
 from renpy.exports import register_shader
 
+cdef extern from "SDL.h" nogil:
+    void* SDL_LoadObject(const char* sofile)
+    void* SDL_LoadFunction(void* handle, const char* name)
+
+cdef extern from "Live2DCubismCore.h":
+
+    ctypedef struct csmMoc
+    ctypedef struct csmModel
+    ctypedef unsigned int csmVersion
+
+    enum:
+        csmAlignofMoc
+        csmAlignofModel
+
+    enum:
+        csmBlendAdditive
+        csmBlendMultiplicative
+        csmIsDoubleSided
+
+    enum:
+        csmIsVisible
+        csmVisibilityDidChange
+        csmOpacityDidChange
+        csmDrawOrderDidChange
+        csmRenderOrderDidChange
+        csmVertexPositionsDidChange
+
+    ctypedef unsigned char csmFlags
+
+    enum:
+        csmMocVersion_Unknown
+        csmMocVersion_30
+        csmMocVersion_33
+
+    ctypedef unsigned int csmMocVersion
+
+    ctypedef struct csmVector2:
+        float X
+        float Y
+
+    ctypedef void (*csmLogFunction)(const char* message)
+
+include "live2dcsm.pxi"
+
 register_shader("live2d.mask", variables="""
     uniform sampler2D uTex0;
     uniform sampler2D uTex1;
@@ -37,7 +81,8 @@ register_shader("live2d.flip_texture", variables="""
 cdef void log_function(const char *message):
     print(message)
 
-csmSetLogFunction(log_function)
+def post_init():
+    csmSetLogFunction(log_function)
 
 cdef class AlignedMemory:
     """
