@@ -29,6 +29,7 @@ cdef extern from "Live2DCubismCore.h":
         csmBlendAdditive
         csmBlendMultiplicative
         csmIsDoubleSided
+        csmIsInvertedMask
 
     enum:
         csmIsVisible
@@ -44,6 +45,7 @@ cdef extern from "Live2DCubismCore.h":
         csmMocVersion_Unknown
         csmMocVersion_30
         csmMocVersion_33
+        csmMocVersion_40
 
     ctypedef unsigned int csmMocVersion
 
@@ -69,6 +71,22 @@ register_shader("live2d.mask", variables="""
     vec4 color = texture2D(uTex0, vTexCoord);
     vec4 mask = texture2D(uTex1, vMaskCoord);
     gl_FragColor = color * mask.a;
+""")
+
+register_shader("live2d.inverted_mask", variables="""
+    uniform sampler2D uTex0;
+    uniform sampler2D uTex1;
+    attribute vec4 vPosition;
+    attribute vec2 aTexCoord;
+    varying vec2 vTexCoord;
+    varying vec2 vMaskCoord;
+""", vertex_110="""
+    vTexCoord = aTexCoord;
+    vMaskCoord = vec2(aPosition.x / 2 + .5, -aPosition.y / 2 + .5);
+""", fragment_110="""
+    vec4 color = texture2D(uTex0, vTexCoord);
+    vec4 mask = texture2D(uTex1, vMaskCoord);
+    gl_FragColor = color * (1.0 - mask.a);
 """)
 
 register_shader("live2d.flip_texture", variables="""
@@ -307,7 +325,8 @@ cdef class Live2DModel:
         cdef Render rv
 
         shaders = ("renpy.texture", "live2d.flip_texture")
-        mask_shaders = ("live2d.mask", "live2d.flip_texture" )
+        mask_shaders = ("live2d.mask", "live2d.flip_texture")
+        inverted_mask_shaders = ("live2d.inverted_mask", "live2d.flip_texture")
 
         csmUpdateModel(self.model)
 
@@ -342,7 +361,12 @@ cdef class Live2DModel:
             r = raw_renders[i]
             m = raw_renders[self.drawable_masks[i][0]]
 
-            r.shaders = mask_shaders
+
+            if self.drawable_constant_flags[i] & csmIsInvertedMask:
+                r.shaders = inverted_mask_shaders
+            else:
+                r.shaders = mask_shaders
+
             r.blit(m, (0, 0))
 
         renders.sort()
