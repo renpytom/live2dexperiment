@@ -3,8 +3,7 @@
 .pydevproject
 .settings/
 
-Cubism3SDKforNative
-Cubism3SDKforNative-beta12.zip
+CubismSDKforNative
 
 build/
 main
@@ -19,3 +18,4 @@ traceback.txt
 errors.txt
 old
 live2dmodel.c
+game/Resources

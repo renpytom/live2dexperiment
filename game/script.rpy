@@ -57,7 +57,7 @@ init python:
 
             return self.model.render(textures)
 
-image hiyori = Live2D("Cubism3SDKforNative/Samples/Res/Hiyori/Hiyori.model3.json", "Hiyori_m01")
+image hiyori = Live2D("Resources/Hiyori/Hiyori.model3.json", "Hiyori_m01")
 
 
 
