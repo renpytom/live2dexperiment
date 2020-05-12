@@ -46,8 +46,13 @@ class Live2DCommon(object):
             suffix = filename.rpartition("/")[2]
             filename = filename + "/" + suffix + ".model3.json"
 
+        renpy.display.log.write("Loading Live2D from %r.", filename)
+
         if not renpy.exports.loadable(filename):
             raise Exception("Live2D model {} does not exist.".format(filename))
+
+        # A short name for the model.
+        model_name = filename.rpartition("/")[2].partition(".")[0].lower()
 
         # The path to where the files used are stored.
         self.base = filename.rpartition("/")[0]
@@ -70,61 +75,87 @@ class Live2DCommon(object):
         # The motion information.
         self.motions = { }
 
-        motion_files = [ ]
-
-        def walk_motions(o):
+        def walk_json_files(o, l):
             if isinstance(o, list):
                 for i in o:
-                    walk_motions(i)
+                    walk_json_files(i, l)
                 return
 
             if "File" in o:
-                motion_files.append(o["File"])
+                l.append(o["File"])
                 return
 
             for i in o.values():
-                walk_motions(i)
+                walk_json_files(i, l)
 
-        walk_motions(self.model_json["FileReferences"].get("Motions", { }))
+        motion_files = [ ]
+        walk_json_files(self.model_json["FileReferences"].get("Motions", { }), motion_files)
 
-        print(motion_files)
+        # A list of attributes that are known.
+        self.attributes = set()
 
-        # self.motion = live2d.motion.Motion(self.base + "motions/" + motion + ".motion3.json")
+        # A map from a motion name to a motion identifier.
+        self.motions = { }
+
+        for i in motion_files:
+            name = i.lower().rpartition("/")[2].partition(".")[0]
+
+            prefix, _, suffix = name.partition("_")
+
+            if prefix == model_name:
+                name = suffix
+
+            renpy.display.log.write(" - motion %s -> %s", name, i)
+
+            self.motions[name] = live2d.motion.Motion(self.base + i)
+            self.attributes.add(name)
 
 
-Live2DCommon("Resources/Hiyori")
+# This maps a filename to a Live2DCommon object.
+common_cache = { }
 
-# class Live2D(object):
-#
-#     def __init__(self, filename, motion, **properties):
-#         super(Live2D, self).__init__(**properties)
-#
-#         # The path to where the files used are stored.
-#         self.base = filename.rpartition("/")[0]
-#
-#         if self.base:
-#             self.base += "/"
-#
-#         # The contents of the .model3.json file.
-#         self.model_json = json.load(renpy.file(filename))
-#
-#         # The model created from the moc3 file.
-#         self.model = live2dmodel.Live2DModel(self.base + self.model_json["FileReferences"]["Moc"])
-#
-#         # The texture images.
-#         self.textures = [ ]
-#
-#         for i in self.model_json["FileReferences"]["Textures"]:
-#             self.textures.append(renpy.displayable(self.base + i))
-#
-#         # The motion information.
-#         self.motion = live2d.motion.Motion(self.base + "motions/" + motion + ".motion3.json")
-#
-#     def render(self, width, height, st, at):
-#
-#         renpy.redraw(self, 0)
-#         textures = [ renpy.render(d, width, height, st, at) for d in self.textures ]
-#
+
+class Live2D(renpy.exports.Displayable):
+
+    nosave = [ "common_cache" ]
+
+    common_cache = None
+
+    @property
+    def common(self):
+        if self.common_cache is not None:
+            return self.common_cache
+
+        rv = common_cache.get(self.filename, None)
+
+        if rv is None:
+            rv = Live2DCommon(self.filename)
+            common_cache[self.filename] = rv
+
+        self.common_cache = rv
+        return rv
+
+    def __init__(self, filename, motion=None, **properties):
+        super(Live2D, self).__init__(**properties)
+
+        self.filename = filename
+        self.motion = motion
+
+    def _duplicate(self, args):
+
+        name = " ".join(args.name + tuple(args.args))
+
+        return self
+
+    def render(self, width, height, st, at):
+
+        renpy.exports.redraw(self, 0)
+
+        common = self.common
+        model = common.model
+
+        textures = [ renpy.exports.render(d, width, height, st, at) for d in common.textures ]
+
 #         for k, v in self.motion.get(st).items():
 #
 #             kind, key = k
@@ -133,5 +164,5 @@ Live2DCommon("Resources/Hiyori")
 #                 self.model.set_parameter(key, v)
 #             else:
 #                 self.model.set_part_opacity(key, v)
-#
-#         return self.model.render(textures)
+
+        return model.render(textures)
