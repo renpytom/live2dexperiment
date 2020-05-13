@@ -120,6 +120,7 @@ class Live2D(renpy.exports.Displayable):
     nosave = [ "common_cache" ]
 
     common_cache = None
+    _duplicatable = True
 
     @property
     def common(self):
@@ -141,11 +142,28 @@ class Live2D(renpy.exports.Displayable):
         self.filename = filename
         self.motion = motion
 
+        # Load the common data.
+        _ = self.common
+
     def _duplicate(self, args):
 
-        name = " ".join(args.name + tuple(args.args))
+        common = self.common
+        motion = self.motion
 
-        return self
+        for i in args.args:
+            if i in common.motions:
+                if motion is not None:
+                    raise Exception("When showing {}, {} and {} are both motions.".format(args.name, motion, i))
+                else:
+                    motion = i
+
+                continue
+
+            raise Exception("When showing {}, {} is not a known attribute.".format(args.name, i))
+
+        rv = Live2D(self.filename, motion=motion)
+        rv._duplicatable = False
+        return rv
 
     def render(self, width, height, st, at):
 
@@ -156,13 +174,17 @@ class Live2D(renpy.exports.Displayable):
 
         textures = [ renpy.exports.render(d, width, height, st, at) for d in common.textures ]
 
-#         for k, v in self.motion.get(st).items():
-#
-#             kind, key = k
-#
-#             if kind == "Parameter":
-#                 self.model.set_parameter(key, v)
-#             else:
-#                 self.model.set_part_opacity(key, v)
+        motion = common.motions.get(self.motion, None)
+
+        if motion is not None:
+
+            for k, v in motion.get(st).items():
+
+                kind, key = k
+
+                if kind == "Parameter":
+                    common.model.set_parameter(key, v)
+                else:
+                    common.model.set_part_opacity(key, v)
 
         return model.render(textures)
