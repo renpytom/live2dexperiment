@@ -165,6 +165,37 @@ class Live2D(renpy.exports.Displayable):
         rv._duplicatable = False
         return rv
 
+    def _list_attributes(self, tag, attributes):
+
+        common = self.common
+
+        available = set(common.attributes)
+
+        for i in attributes:
+
+            if i in common.motions:
+                available -= set(common.motions)
+
+        available |= set(attributes)
+
+        return [ i for i in common.attributes if i in available ]
+
+    def _choose_attributes(self, tag, attributes, optional):
+
+        motion = None
+
+        common = self.common
+
+        for i in optional:
+            if i in common.motions:
+                motion = i
+
+        for i in attributes:
+            if i in common.motions:
+                motion = i
+
+        return (motion,)
+
     def render(self, width, height, st, at):
 
         renpy.exports.redraw(self, 0)
