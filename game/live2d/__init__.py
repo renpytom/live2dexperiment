@@ -253,3 +253,7 @@ class Live2D(renpy.exports.Displayable):
             rv.forward = renpy.display.matrix.Matrix.scale(1 / zoom, 1 / zoom, 1.0)
 
         return rv
+
+    def visit(self):
+        return self.common.textures
+
