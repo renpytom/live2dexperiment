@@ -206,7 +206,8 @@ class Live2D(renpy.exports.Displayable):
 
     def render(self, width, height, st, at):
 
-        renpy.exports.redraw(self, 0)
+        if self.motion is not None:
+            renpy.exports.redraw(self, 0)
 
         common = self.common
         model = common.model
