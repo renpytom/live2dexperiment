@@ -136,11 +136,19 @@ class Live2D(renpy.exports.Displayable):
         self.common_cache = rv
         return rv
 
-    def __init__(self, filename, motion=None, **properties):
+    def __init__(self, filename, motion=None, zoom=None, top=0.0, base=1.0, **properties):
+
+        if base is not None:
+            properties.setdefault("yanchor", base)
+
         super(Live2D, self).__init__(**properties)
 
         self.filename = filename
         self.motion = motion
+
+        self.zoom = zoom
+        self.top = top
+        self.base = base
 
         # Load the common data.
         _ = self.common
@@ -161,7 +169,7 @@ class Live2D(renpy.exports.Displayable):
 
             raise Exception("When showing {}, {} is not a known attribute.".format(args.name, i))
 
-        rv = Live2D(self.filename, motion=motion)
+        rv = Live2D(self.filename, motion=motion, zoom=self.zoom, top=self.top, base=self.base)
         rv._duplicatable = False
         return rv
 
@@ -218,4 +226,30 @@ class Live2D(renpy.exports.Displayable):
                 else:
                     common.model.set_part_opacity(key, v)
 
-        return model.render(textures)
+        rend = model.render(textures)
+        sw, sh = rend.get_size()
+
+        zoom = self.zoom
+
+        def s(n):
+            if isinstance(n, float):
+                return n * sh
+            else:
+                return n
+
+        if zoom is None:
+            top = s(self.top)
+            base = s(self.base)
+
+            size = max(base - top, 1.0)
+
+            zoom = 1.0 * height / size
+
+        rv = renpy.exports.Render(sw * zoom, sh * zoom)
+        rv.blit(rend, (0, 0))
+
+        if zoom != 1.0:
+            rv.reverse = renpy.display.matrix.Matrix.scale(zoom, zoom, 1.0)
+            rv.forward = renpy.display.matrix.Matrix.scale(1 / zoom, 1 / zoom, 1.0)
+
+        return rv
