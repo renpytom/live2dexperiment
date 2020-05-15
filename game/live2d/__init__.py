@@ -258,3 +258,10 @@ class Live2D(renpy.exports.Displayable):
     def visit(self):
         return self.common.textures
 
+
+def reset():
+    """
+    Resets this module when Ren'Py restarts.
+    """
+
+    common_cache.clear()

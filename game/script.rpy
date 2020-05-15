@@ -20,6 +20,10 @@ label start:
 
     pause
 
+
+    show hiyori m03
+    with dissolve
+
     "..."
 
     return

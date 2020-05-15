@@ -1,5 +1,6 @@
 init -999 python:
     import live2d
+    live2d.reset()
     Live2D = live2d.Live2D
 
 init -999 python hide:
