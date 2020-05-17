@@ -261,18 +261,6 @@ cdef class Live2DModel:
 
         csmUpdateModel(self.model)
 
-        self.meshes = [ ]
-
-        for 0 <= i < self.drawable_count:
-            mesh = Mesh2(TEXTURE_LAYOUT, 0, 0)
-            mesh.points = self.drawable_vertex_counts[i]
-            mesh.point_data = <float *> self.drawable_vertex_positions[i]
-            mesh.attribute = <float *> self.drawable_vertex_uvs[i]
-            mesh.triangles = self.drawable_index_counts[i] // 3
-            mesh.triangle = self.drawable_indices[i]
-
-            self.meshes.append(mesh)
-
     def set_part_opacity(self, name, value):
         part = self.parts[name]
         self.part_opacities[part.index] = value
@@ -282,6 +270,8 @@ cdef class Live2DModel:
         self.parameter_values[parameter.index] = value
 
     def render(self, textures):
+
+        cdef int i
 
         cdef Render r
         cdef Render m
@@ -302,10 +292,19 @@ cdef class Live2DModel:
 
         for 0 <= i < self.drawable_count:
 
+            mesh = Mesh2(TEXTURE_LAYOUT, self.drawable_vertex_counts[i], self.drawable_index_counts[i] // 3)
+
+            mesh.points = self.drawable_vertex_counts[i]
+            memcpy(mesh.point_data, self.drawable_vertex_positions[i], sizeof(float) * mesh.points * 2)
+            memcpy(mesh.attribute, self.drawable_vertex_uvs[i], sizeof(float) * mesh.points * 2)
+
+            mesh.triangles = self.drawable_index_counts[i] // 3
+            memcpy(mesh.triangle, self.drawable_indices[i],  sizeof(unsigned short) * mesh.triangles * 3)
+
             r = Render(self.pixels_per_unit * 2, self.pixels_per_unit * 2)
             r.reverse = self.reverse
             r.forward = self.forward
-            r.mesh = self.meshes[i]
+            r.mesh = mesh
             r.shaders = shaders
             r.alpha = self.drawable_opacities[i]
 
@@ -323,7 +322,6 @@ cdef class Live2DModel:
 
             r = raw_renders[i]
             m = raw_renders[self.drawable_masks[i][0]]
-
 
             if self.drawable_constant_flags[i] & csmIsInvertedMask:
                 r.shaders = inverted_mask_shaders
