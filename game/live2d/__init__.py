@@ -28,7 +28,26 @@ import live2d.motion
 import json
 import os
 
-live2dmodel.load(os.environ["CUBISM"] + "/Core/dll/linux/x86_64/libLive2DCubismCore.so")
+did_init = False
+
+
+def init():
+    global did_init
+
+    if did_init:
+        return
+
+    did_init = True
+
+    if renpy.windows:
+        dll = "Live2DCubismCore.dll"
+    elif renpy.macintosh:
+        dll = "libLive2DCubismCore.dylib"
+    else:
+        dll = "libLive2DCubismCore.so"
+
+    if not live2dmodel.load(dll):
+        raise Exception("Could not load Live2D. {} was not found.".format(dll))
 
 
 class Live2DCommon(object):
@@ -40,6 +59,8 @@ class Live2DCommon(object):
     """
 
     def __init__(self, filename):
+
+        init()
 
         # If a directory is given rather than a json file, expand it.
         if not filename.endswith(".json"):

@@ -232,3 +232,5 @@ def load(dll):
         raise Exception("csmResetDrawableDynamicFlags not found in Live2D dll " + dll + ".")
 
     post_init()
+
+    return True
