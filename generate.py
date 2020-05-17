@@ -112,9 +112,13 @@ def load(dll):
 
     did_load = True
 
-    cdef void *object = SDL_LoadObject(dll)
-    if not dll:
-        return False
+    cdef void *object = NULL
+
+    if dll:
+        object = SDL_LoadObject(dll)
+
+        if not object:
+            return False
 
 """)
 
