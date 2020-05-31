@@ -57,7 +57,6 @@ cdef extern from "Live2DCubismCore.h":
 
 include "live2dcsm.pxi"
 
-
 # Enable logging.
 cdef void log_function(const char *message):
     print(message)
