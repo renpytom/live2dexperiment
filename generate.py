@@ -64,7 +64,7 @@ class Function:
         self.argtypes = ", ".join(argtypes)
 
     def codegen_define(self, f):
-        f.write(f"ctypedef {self.type} (* {self.name}Type)({self.argtypes})\n")
+        f.write(f"ctypedef {self.type} (__stdcall * {self.name}Type)({self.argtypes})\n")
         f.write(f"cdef {self.name}Type {self.name}\n")
 
     def codegen_load(self, f):
